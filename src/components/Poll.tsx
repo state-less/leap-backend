@@ -1,13 +1,12 @@
 import {
     authenticate,
-    ClientContext,
     IComponent,
     isClientContext,
     Scopes,
     useState,
     clientKey,
 } from '@state-less/react-server';
-import { JWT_SECRET } from '../config';
+import { JWT_SECRET } from '../lib/config';
 import { ServerSideProps } from './ServerSideProps';
 
 export enum PollActions {

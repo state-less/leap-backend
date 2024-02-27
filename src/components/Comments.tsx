@@ -1,3 +1,5 @@
+/* eslint-disable no-shadow */
+/* eslint-disable no-unused-vars */
 import {
     authenticate,
     ClientContext,
@@ -10,10 +12,10 @@ import {
 } from '@state-less/react-server';
 import { v4 } from 'uuid';
 
-import { JWT_SECRET } from '../config';
+import { PartialAuth } from '@state-less/react-server/dist/types/auth';
+import { JWT_SECRET } from '../lib/config';
 import { ServerSideProps } from './ServerSideProps';
-import { admins } from '../lib/permissions';
-import { Session } from '../lib/types';
+import { Admins, GoogleToken, Session } from '../lib/types';
 import { VotingPolicies, Votings } from './Votings';
 
 export enum CommentPolicies {
@@ -23,7 +25,10 @@ export enum CommentPolicies {
 }
 
 export const Comments: IComponent<any> = (
-    { policies = [] }: { policies: CommentPolicies[]; id: string },
+    {
+        policies = [],
+        users = [],
+    }: { policies: CommentPolicies[]; id: string; users: Admins },
     { key, context }
 ) => {
     if (
@@ -34,7 +39,10 @@ export const Comments: IComponent<any> = (
 
     let user: Session | null;
     try {
-        user = authenticate((context as ClientContext).headers, JWT_SECRET);
+        user = authenticate(
+            (context as ClientContext).headers,
+            JWT_SECRET
+        ) as unknown as Session;
     } catch (e) {
         user = null;
     }
@@ -45,7 +53,7 @@ export const Comments: IComponent<any> = (
     });
 
     const comment = (message) => {
-        let decoded: Session | null = null;
+        let decoded: Session | PartialAuth<unknown> | null = null;
         try {
             decoded = authenticate(
                 (context as ClientContext).headers,
@@ -63,11 +71,13 @@ export const Comments: IComponent<any> = (
 
         if (!message) throw new Error('Message is required');
 
-        const { strategy } = decoded || { strategy: 'anonymous' };
+        const { strategy, strategies } = (decoded || {
+            strategy: 'anonymous',
+        }) as Session;
         const {
             email,
             decoded: { name, picture },
-        } = decoded?.strategies?.[strategy] || {
+        } = strategies?.[strategy] || {
             email: null,
             decoded: { name: 'Anonymous', picture: null },
         };
@@ -99,7 +109,7 @@ export const Comments: IComponent<any> = (
 
         if (
             !isOwnComment &&
-            !admins.includes(user?.strategies?.[user?.strategy]?.email)
+            !users.includes(user?.strategies?.[user?.strategy]?.email)
         ) {
             throw new Error('Not an admin');
         }
@@ -115,7 +125,7 @@ export const Comments: IComponent<any> = (
                 comment: policies.includes(CommentPolicies.Authenticate)
                     ? !!user?.id
                     : true,
-                delete: admins.includes(
+                delete: users.includes(
                     user?.strategies?.[user?.strategy]?.email
                 ),
             }}
@@ -140,6 +150,7 @@ export const Comments: IComponent<any> = (
 export interface CommentProps {
     remove: () => void;
 }
+
 export const Comment = (props: CommentProps, { key }) => {
     const { remove } = props;
     const del = () => {

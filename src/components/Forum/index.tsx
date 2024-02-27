@@ -14,6 +14,7 @@ import { VotingPolicies, Votings } from '../Votings';
 import { JWT_SECRET } from '../../lib/config';
 import { ViewCounter } from '../ViewCounter';
 import { ReactionPolicies, Reactions, reactionsWhiteList } from '../Reactions';
+import { Admins } from '../../lib/types';
 
 export type PostProps = {
     id: string;
@@ -116,7 +117,7 @@ export const Post = (
     const [post, setPost] = useState<Partial<PostProps>>(initialPost, {
         key: 'post',
         scope: id,
-        storeInitialState: true,
+        // storeInitialState: true,
     });
     const [answers, setAnswers] = useState([], {
         key: 'answers',
@@ -253,8 +254,6 @@ export const Post = (
 export enum ForumPolicies {
     PostsNeedApproval = 'PostsNeedApproval',
 }
-
-export type Admins = string[];
 
 export type ForumProps = {
     key: string;

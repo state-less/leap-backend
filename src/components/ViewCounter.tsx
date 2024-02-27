@@ -10,7 +10,7 @@ import { ServerSideProps } from './ServerSideProps';
 
 export const ViewCounter = (
     props,
-    { key, initiator, context }: RenderOptions
+    { key, initiator, context }: RenderOptions & { key }
 ) => {
     const [views, setViews] = useState(0, {
         key: 'views',
