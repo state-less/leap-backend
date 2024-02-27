@@ -1,4 +1,3 @@
-/* eslint-disable no-unused-vars */
 import {
     Initiator,
     authenticate,
@@ -12,11 +11,9 @@ import { v4 } from 'uuid';
 import { ServerSideProps } from '../ServerSideProps';
 import { Comments } from '../Comments';
 import { VotingPolicies, Votings } from '../Votings';
-import { admins } from '../../lib/permissions';
-import { JWT_SECRET } from '../../config';
+import { JWT_SECRET } from '../../lib/config';
 import { ViewCounter } from '../ViewCounter';
 import { ReactionPolicies, Reactions, reactionsWhiteList } from '../Reactions';
-import { set } from 'date-fns';
 
 export type PostProps = {
     id: string;
@@ -28,12 +25,14 @@ export type PostProps = {
     approvePost: () => void;
     deletePost: () => void;
     owner: any;
+    users?: Admins;
 };
 
 export const Answer = (
     {
         id,
         deleteAnswer,
+        users,
         ...initialAnswer
     }: PostProps & { deleteAnswer: () => void },
     { context }
@@ -79,7 +78,7 @@ export const Answer = (
             del={del}
             canDelete={
                 post?.owner?.id === user?.id ||
-                admins.includes(user?.strategies?.[user?.strategy]?.email)
+                users.includes(user?.strategies?.[user?.strategy]?.email)
             }
         >
             <Votings
@@ -97,7 +96,14 @@ export const Answer = (
 };
 
 export const Post = (
-    { id, deletePost, approvePost, setPostSticky, ...initialPost }: PostProps,
+    {
+        id,
+        deletePost,
+        approvePost,
+        setPostSticky,
+        users,
+        ...initialPost
+    }: PostProps,
     { context }
 ) => {
     let user = null;
@@ -139,7 +145,7 @@ export const Post = (
         deletePost();
     };
 
-    const isAdmin = admins.includes(user?.strategies?.[user?.strategy]?.email);
+    const isAdmin = users.includes(user?.strategies?.[user?.strategy]?.email);
     const isOwner = post?.owner?.id === (user?.id || clientId);
     const isApproved = post?.approved;
 
@@ -206,7 +212,7 @@ export const Post = (
                 // post?.owner?.id === user?.id ||
                 // Only admins can delete posts...
                 // TODO: add policies to toggle owner deletion
-                admins.includes(user?.strategies?.[user?.strategy]?.email)
+                users.includes(user?.strategies?.[user?.strategy]?.email)
             }
             setBody={setBody}
             // TODO: Add renderWithoutEffects utility.
@@ -247,15 +253,19 @@ export const Post = (
 export enum ForumPolicies {
     PostsNeedApproval = 'PostsNeedApproval',
 }
+
+export type Admins = string[];
+
 export type ForumProps = {
     key: string;
     id: string;
     name: string;
     policies?: ForumPolicies[];
+    users?: Admins;
 };
 
 export const Forum = (
-    { id, name, policies }: ForumProps,
+    { id, name, policies, users }: ForumProps,
     { key, context, clientProps, initiator }
 ) => {
     let user = null;
@@ -270,7 +280,6 @@ export const Forum = (
         scope: id,
     });
     const createPost = ({ title, body, tags }) => {
-        console.log('CREATE POST', user, clientId);
         const post = {
             id: v4(),
             title,
@@ -292,7 +301,7 @@ export const Forum = (
         if (
             owner?.strategies?.[user?.strategy]?.email !==
                 user?.strategies?.[user?.strategy]?.email &&
-            !admins.includes(user?.strategies?.[user?.strategy]?.email)
+            !users.includes(user?.strategies?.[user?.strategy]?.email)
         ) {
             throw new Error('Not an admin');
         }
@@ -310,7 +319,7 @@ export const Forum = (
         if (!post) {
             throw new Error('Post not found');
         }
-        if (!admins.includes(user?.strategies?.[user?.strategy]?.email)) {
+        if (!users.includes(user?.strategies?.[user?.strategy]?.email)) {
             throw new Error('Not an admin');
         }
         const newPosts = [{ ...post, approved: true }].concat(
@@ -325,7 +334,7 @@ export const Forum = (
         if (!post) {
             throw new Error('Post not found');
         }
-        if (!admins.includes(user?.strategies?.[user?.strategy]?.email)) {
+        if (!users.includes(user?.strategies?.[user?.strategy]?.email)) {
             throw new Error('Not an admin');
         }
         const newPosts = [{ ...post, sticky: true }].concat(
@@ -335,7 +344,7 @@ export const Forum = (
         setPosts(newPosts);
     };
 
-    const isAdmin = admins.includes(user?.strategies?.[user?.strategy]?.email);
+    const isAdmin = users.includes(user?.strategies?.[user?.strategy]?.email);
 
     /**
      * When filtering posts for the client, you need to make sure they are still
@@ -378,6 +387,7 @@ export const Forum = (
                     deletePost={() => deletePost(post.id)}
                     approvePost={() => approvePost(post.id)}
                     setPostSticky={() => setPostSticky(post.id)}
+                    users={users}
                 />
             ))}
         </ServerSideProps>
